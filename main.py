@@ -39,24 +39,25 @@ if __name__ == '__main__':
     data = read_data()
     data[comment_name] = cut_comments(data[comment_name], is_load_from_file=False, name=all_word_cut_name)  # 统一切词
 
-    # 调参
-    best_pos_class_weight = 1.0
-    #best_pos_class_weight = adjust_parameter_validate_curve(data, LogisticRegression(), 'LogisticRegression Validation')
-
+    model = MultinomialNB() # LogisticRegression()
 
     # 交叉验证绘制学习曲线
-    #learning_curve(data,LogisticRegression(class_weight={pos:best_pos_class_weight, neg:1.0}),scoring='f1')
+    learning_curve(data, model,scoring='f1', classifier_name="Multinomial Bayes")
+
+
+    # 交叉验证，输出评价指标结果
+    cross_validate_score(data, k_fold=5, model=NaiveBayesClassifier, n=2000, is_nltk_model=True) # 可以输出有用的特征
+    # cross_validate_score(data, k_fold=5, model=model, n=2000, is_nltk_model=False)
+
+
+    # 对比实验：不同模型交叉验证/学习曲线
+    compare_models(data)
+
 
     # 绘制precision_recall曲线
     # precision_recall_curve(data, LogisticRegression(class_weight={pos:best_pos_class_weight, neg:1.0}))
 
-
-    # 交叉验证，输出评价指标结果
-    # cross_validate_score(data, k_fold=5, model=NaiveBayesClassifier, n=1500, is_nltk_model=True) # 可以输出特征
-    cross_validate_score(data, k_fold=5, model=MultinomialNB(),n=2000, is_nltk_model=False)
-
-
-    # 对比实验：不同模型交叉验证/学习曲线
-    #compare_models(data)
+    # 调参
+    # adjust_parameter_validate_curve(data, LogisticRegression(), 'LogisticRegression Validation')
 
 

@@ -9,7 +9,7 @@ from sklearn.linear_model import Perceptron
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import svm
-from sklearn.naive_bayes import MultinomialNB, BernoulliNB
+from sklearn.naive_bayes import MultinomialNB, BernoulliNB, GaussianNB
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
 import warnings
@@ -29,7 +29,7 @@ class CommentClasscifier(object):
         return self
 
     def fit(self, train_data, classifier, n=250, is_load_from_file=False,
-            model_file_name='final_model', select_feature_file_name=chi_feature_name, is_need_cut=True,  is_nltk_model=False):
+            model_file_name='final_model', select_feature_file_name=chi_feature_name, is_need_cut=True,  is_nltk_model=False, sparse=True):
         '''
         :param train_data:  训练数据，包含标签
         :param classifier:  使用的分类模型
@@ -56,7 +56,7 @@ class CommentClasscifier(object):
             self.classifier = classifier.train(train_features)
             self.classifier.show_most_informative_features(40)
         else:
-            self.classifier = SklearnClassifier(classifier)  # nltk with scikit-learn interface inside
+            self.classifier = SklearnClassifier(classifier, sparse=sparse)  # nltk with scikit-learn interface inside
             self.classifier.train(train_features)  # train_features include text feature and labels
 
         # save model
@@ -79,12 +79,12 @@ class CommentClasscifier(object):
 
 
 
-def cross_validate_score(data, k_fold=5, model=LogisticRegression(), n=1000, is_nltk_model=False):
+def cross_validate_score(data, k_fold=5, model=LogisticRegression(), n=1000, is_nltk_model=False, sparse=True):
     # load data and cut word
     data_x, data_y = data[comment_name], data[label_name]
     # split data into k fold
     clf = CommentClasscifier()
-    kf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=42) #固定种子
+    kf = StratifiedKFold(n_splits=k_fold, shuffle=True, random_state=42) # 固定种子
     result = []
     # split data according to label balances
     for i, (train_index, validate_index) in enumerate(kf.split(data_x, data_y)):
@@ -92,7 +92,7 @@ def cross_validate_score(data, k_fold=5, model=LogisticRegression(), n=1000, is_
         train_data = data.ix[train_index] # 包含标签
         validate_x = data_x.ix[validate_index] # 不包含标签
         validate_y = data_y.ix[validate_index]
-        clf.fit(train_data, model, n=n, is_load_from_file=False, is_need_cut=False,  is_nltk_model=is_nltk_model)
+        clf.fit(train_data, model, n=n, is_load_from_file=False, is_need_cut=False,  is_nltk_model=is_nltk_model, sparse=sparse)
         pred_y = clf.predict(validate_x, is_need_cut=False)
         result.append(acc_precision_recall_score(validate_y, pred_y))
     result = np.mean(result, axis=0)
@@ -103,20 +103,19 @@ def cross_validate_score(data, k_fold=5, model=LogisticRegression(), n=1000, is_
     print ('neg: precision:{:.3f}, recall:{:.3f}, f1_score:{:.3f}'.format(result[4], result[5], result[6]))
     print('-------------------------------------------------------------------')
 
-
     return result[-1] # f1_score of neg class
 
 
 
 
 def learning_curve(data, model, classifier_name='LogisticRegression', n=1000, is_need_cut=False, is_load_from_file=False,
-                   cv=5, train_sizes=np.linspace(.1, 1.0, 10), ylim=(0.8, 1.1), baseline=0.9):
+                   cv=5, train_sizes=np.linspace(.1, 1.0, 10), ylim=(0.8, 1.1), baseline=0.9, scoring='f1'):
     '''绘制学习曲线'''
     _, data_features = fit_preprocess(train_data=data, is_need_cut=is_need_cut, n=n,
                                         is_load_from_file=is_load_from_file)
     X, y = transform_features(data_features)
     plot_learning_curve(model, classifier_name, X=X, y=y, ylim=ylim, cv=cv,
-                        train_sizes=train_sizes, baseline=baseline)
+                        train_sizes=train_sizes, baseline=baseline, scoring=scoring)
 
 def adjust_parameter_validate_curve(data, model, model_file_name,
                                     n=1000, is_need_cut=False, is_load_from_file=False, cv=5):
@@ -126,9 +125,9 @@ def adjust_parameter_validate_curve(data, model, model_file_name,
     X, y = transform_features(data_features)
     param_name = 'class_weight'
     param_plot_range = np.arange(0.5, 2.1, 0.1)
-    param_range = [{pos:1.0, neg:neg_class_weight} for neg_class_weight in param_plot_range]
+    param_range = [{pos:pos_class_weight, neg:1.0} for pos_class_weight in param_plot_range]
     return plot_validation_curve(model, model_file_name, X=X, y=y, param_name=param_name, param_range=param_range, param_plot_range=param_plot_range,
-                          cv=cv)
+                          cv=cv,scoring=f1_scorer)
 
 
 def train_all_and_predict_no_label_data(data, model, n=1000):

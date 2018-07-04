@@ -25,3 +25,5 @@ no_label_comment_pred_result_path = data_root_path + 'no_label_comment_pred_resu
 
 good_comment_path = data_root_path + 'good-comment.txt'
 bad_comment_path = data_root_path + 'bad-comment.txt'
+
+font_path = data_root_path+"msyh.ttf"

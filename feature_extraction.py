@@ -42,6 +42,7 @@ def chi_features(number, pos_comments, neg_comments, is_plot=False, is_save=Fals
     # 把词按信息量倒序排序
     best_features = sorted(word_scores.items(), key=lambda item: item[1], reverse=True)[:number]
 
+
     if is_plot: plot_word_cloud(best_features)
     if is_save: dump_to_pickle(dir_path, 'chi_features', best_features)
     return dict(best_features)

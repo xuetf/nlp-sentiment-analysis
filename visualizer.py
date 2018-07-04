@@ -2,6 +2,7 @@
 from os import path
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import validation_curve
@@ -17,15 +18,13 @@ from sklearn.metrics import precision_recall_curve
 def plot_word_cloud(best_words):
     best_words = dict(best_words)
     # Generate a word cloud image
-    cloud = WordCloud(font_path="C:\Windows\Fonts\simhei.ttf")
+    cloud = WordCloud(font_path=font_path)
     wordcloud = cloud.generate_from_frequencies(best_words)
     # Display the generated image:
     # the matplotlib way:
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis("off")
     plt.show()
-
-# plot_word_cloud({u'你好':100, u'我们':200,u'啊啊':30})
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
                         train_sizes=np.linspace(.1, 1.0, 10), baseline=None, scoring='f1'):
@@ -88,7 +87,7 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
 
 def plot_validation_curve(estimator,title, X, y,
                           param_name, param_range, param_plot_range,
-                          x_ticks=np.arange(1.00, 2.10, 0.1), y_ticks=np.arange(0.96, 0.97, 0.001), cv=None, scoring='f1'):
+                          x_ticks=np.arange(0.5, 2.10, 0.1), y_ticks=np.arange(0.8, 0.95, 0.01), cv=None, scoring='f1'):
     kf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=1)  # 固定种子
     train_scores, test_scores = validation_curve(
         estimator, X, y, param_name=param_name, param_range=param_range,
@@ -102,7 +101,10 @@ def plot_validation_curve(estimator,title, X, y,
     print (test_scores_mean)
     plt.title(title)
     plt.xlabel(param_name)
-    plt.ylabel("%s Score" %scoring)
+    if isinstance(scoring,str):
+        plt.ylabel("%s Score" %scoring)
+    else:
+        plt.ylabel("F1 Score")
 
 
     plt.semilogx(param_plot_range, train_scores_mean, label="Training score",
@@ -115,14 +117,18 @@ def plot_validation_curve(estimator,title, X, y,
     plt.fill_between(param_plot_range, test_scores_mean - test_scores_std,
                      test_scores_mean + test_scores_std, alpha=0.2,
                      color="b")
+
     plt.yticks(y_ticks)
     plt.xticks(x_ticks,rotation=90)
     plt.xlim((0, 2.0))
-    import matplotlib.ticker as ticker
+
     plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
     plt.legend(loc="best")
     plt.show()
-    return param_plot_range[np.argmax(test_scores_mean)]
+
+    best =  param_plot_range[np.argmax(test_scores_mean)]
+    print (best)
+    return best
 
 def plot_precision_recall_curve(classifier, X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.5, random_state=1) # Use the first fold to draw the curve
@@ -148,10 +154,10 @@ def plot_precision_recall_curve(classifier, X, y):
 
 
 def plot_compare_learning_curve(estimators, X, y, title="Compare Learning curve of Different Model", ylim=(0.7, 1.1), cv=5,
-                        train_sizes=np.linspace(.1, 1.0, 5), baseline=0.9, scoring='f1'):
+                        train_sizes=np.linspace(.1, 1.0, 5), baseline=0.85, scoring='f1'):
     X, y = shuffle(X, y)  # important for logistic because of the parallel modeling
     plt.figure()
-    colors = np.array(['r', 'b', 'k', 'g', 'm', 'pink'])
+    colors = np.array(['r', 'b', 'k', 'g', 'm', 'pink', 'purple', 'orange'])
     i = 0
     for name in estimators:
         estimator = estimators[name]
